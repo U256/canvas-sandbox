@@ -1,0 +1,14 @@
+**/.next
+next.config.mjs
+node_modules
+public
+build
+dist
+coverage
+.git
+.husky
+.vscode
+*.log
+package-lock.json
+public/*
+README.md
