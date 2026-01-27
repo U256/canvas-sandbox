@@ -1,11 +1,22 @@
-import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
-import { Canvas } from './components/Canvas'
+import { Canvas } from './canvas'
+// import { Zoomable as Canvas } from './components/Zoomable'
 import './App.css'
+import { CanvasContextProvider } from './canvas/Provider'
+import { useEffect, useState } from 'react'
+import { dataMock } from './canvas/constants'
 
 function App() {
-	const [count, setCount] = useState(0)
+	const [mock, _setMock] = useState<typeof dataMock>({ nodes: [], links: [] })
+	useEffect(() => {
+		const id = setTimeout(() => {
+			_setMock(dataMock)
+		}, 1000)
+		return () => {
+			clearTimeout(id)
+		}
+	}, [])
 
 	return (
 		<>
@@ -18,7 +29,9 @@ function App() {
 				</a>
 				<h1>Canvas</h1>
 			</div>
-			<Canvas />
+			<CanvasContextProvider nodes={mock.nodes}>
+				<Canvas data={mock} />
+			</CanvasContextProvider>
 		</>
 	)
 }
