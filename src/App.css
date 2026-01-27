@@ -1,6 +1,18 @@
+body {}
+
 #root {
 	max-width: 1280px;
+	width: 100%;
+	min-height: 100dvh;
 	margin: 0 auto;
-	padding: 2rem;
 	text-align: center;
+	display: flex;
+	flex-direction: column;
+}
+
+.canvas-wrapper {
+	width: calc(100% - 5px);
+	height: calc(100% - 15px);
+	border: 1px solid blue;
+	flex: 1 0 auto;
 }
