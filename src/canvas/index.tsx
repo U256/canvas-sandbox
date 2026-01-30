@@ -13,7 +13,7 @@ export interface Properties {
 	initialZoom?: Zoom
 }
 
-const baseZoom = { x: 0, y: 0, k: 1 }
+const baseZoom = { x: 0, y: 0, k: 3 }
 
 const gridValues = [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
@@ -35,15 +35,15 @@ export const Canvas: FC<Properties> = ({ data, initialZoom = baseZoom }) => {
 	useEffect(() => {
 		// set initially
 		if (size.width !== 1) {
+			const k = zoomRef.current.k
 			onZoomChange({
-				x1: zoomRef.current.x,
-				x2: zoomRef.current.x + size.width,
-				y1: zoomRef.current.y,
-				y2: zoomRef.current.y + size.height,
+				x1: (zoomRef.current.x) / k,
+				x2: (zoomRef.current.x + size.width) / k,
+				y1: (zoomRef.current.y) / k,
+				y2: (zoomRef.current.y + size.height) / k,
 			})
 		}
-		console.log('here')
-	}, [data, size])
+	}, [data, size, onZoomChange])
 
 	const handlers = useMemo<KonvaNodeEvents>(() => {
 		const getViewportByEvent = (event: Konva.KonvaEventObject<MouseEvent>) => {
@@ -81,8 +81,6 @@ export const Canvas: FC<Properties> = ({ data, initialZoom = baseZoom }) => {
 					const _newScaleNotClamped = isOut ? oldScale / SCALE_STEP : oldScale * SCALE_STEP
 					const newScale = Math.max(MIN_SCALE, Math.min(_newScaleNotClamped, MAX_SCALE))
 
-					// TODO: zoom out looks weird
-
 					const newZoom = {
 						k: newScale,
 						x: -(mousePointTo.x - actionX / newScale) * newScale,
@@ -95,8 +93,11 @@ export const Canvas: FC<Properties> = ({ data, initialZoom = baseZoom }) => {
 				})
 			}, 50),
 			onDragMove: throttle((event) => {
-				onZoomChange(getViewportByEvent(event))
-			}, 50),
+				// Только если перемещаем область видимости
+				if (event.currentTarget._id === event.target._id) {
+					onZoomChange(getViewportByEvent(event))
+				}
+			}, 100), // NOTE: большой период троттла, достаточно для отображения нод и не лагает
 			// onDragEnd: (e) => {
 			// 	const isStageDrag = e.target._id === e.currentTarget._id
 			// 	if (isStageDrag) {
@@ -104,7 +105,7 @@ export const Canvas: FC<Properties> = ({ data, initialZoom = baseZoom }) => {
 			// 	}
 			// },
 		}
-	}, [])
+	}, [onZoomChange])
 
 	return (
 		<div ref={wrapperRef} className="canvas-wrapper">

@@ -20,7 +20,6 @@ export default defineConfig([
 			globals: globals.browser,
 		},
 		rules: {
-			'react-hooks/refs': 'off',
 			'prefer-const': 'warn',
 			'@typescript-eslint/no-unused-vars': 'warn',
 		},

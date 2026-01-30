@@ -28,8 +28,6 @@ export const LinkView: FC<LinkViewProps> = ({ link }) => {
 				stroke={link.source === '2' ? 'red' : 'green'}
 				strokeWidth={2}
 				lineJoin="round"
-				x={50}
-				y={50}
 			/>
 		</>
 	)

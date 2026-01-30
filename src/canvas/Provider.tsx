@@ -10,11 +10,16 @@ import {
 	type FC,
 	type ReactNode,
 } from 'react'
-import type { Node, Zoom } from './types'
+import type { Node } from './types'
 
 export type NodeSubscribeCb = (node: Node) => void
 export type CellSubscribeCb = (isVisible: boolean) => void
 type UnsubscribeCb = () => void
+
+type GridCellState = {
+	isVisible: boolean
+	subscriptions: CellSubscribeCb[]
+}
 
 export type MapContext = {
 	nodeIdToNodeRecord: Record<string, Node>
@@ -43,23 +48,21 @@ export const CanvasContextProvider: FC<CanvasContextProviderProps> = ({ children
 		[gridCellSize],
 	)
 
+	// NOTE: ВАЖНО добавлять все коллбеки в зависимости там, где они используются!
 	const ctx = useMemo<MapContext>(() => {
 		// TODO: попробовать перенести это состояние в другой провайдер
 		const nodeIdToNodeRecord: Record<string, Node> = {}
 		const nodeIdToSubscriptionsRecord: Record<string, NodeSubscribeCb[]> = {}
 
-		const gridCellToSubscriptionsRecord: Record<string, CellSubscribeCb[]> = {}
-		const gridCellToVisibilityRecord: Record<string, boolean> = {}
+		const cellToStateRecord: Record<string, GridCellState> = {}
 
 		// Инициализируем ноды и добавляем их в grid
 		for (const node of nodes) {
-			const cellKey = getGridCellByCoordinates(node.x, node.y)
-
 			nodeIdToNodeRecord[node.id] = node
 			nodeIdToSubscriptionsRecord[node.id] = []
 
-			gridCellToSubscriptionsRecord[cellKey] = []
-			gridCellToVisibilityRecord[cellKey] = false
+			const cellKey = getGridCellByCoordinates(node.x, node.y)
+			cellToStateRecord[cellKey] = { isVisible: false, subscriptions: [] }
 		}
 
 		return {
@@ -82,20 +85,19 @@ export const CanvasContextProvider: FC<CanvasContextProviderProps> = ({ children
 				}
 			},
 			subscribeToGridCell: (cellKey, subscriberCb, shouldCallInstantly = true) => {
-				gridCellToSubscriptionsRecord[cellKey].push(subscriberCb)
-
-				const isVisible = gridCellToVisibilityRecord[cellKey] || false
+				if (!cellToStateRecord[cellKey]) {
+					cellToStateRecord[cellKey] = { isVisible: true, subscriptions: [] }
+				}
+				const state = cellToStateRecord[cellKey]
+				state.subscriptions.push(subscriberCb)
 				if (shouldCallInstantly) {
-					subscriberCb(isVisible)
+					subscriberCb(state.isVisible)
 				}
 
 				return () => {
-					const subs = gridCellToSubscriptionsRecord[cellKey]
-					if (subs) {
-						const index = subs.indexOf(subscriberCb)
-						if (index > -1) {
-							subs.splice(index, 1)
-						}
+					const index = state.subscriptions.indexOf(subscriberCb)
+					if (index > -1) {
+						state.subscriptions.splice(index, 1)
 					}
 				}
 			},
@@ -120,14 +122,12 @@ export const CanvasContextProvider: FC<CanvasContextProviderProps> = ({ children
 					}
 				}
 
-				for (const cellKey in gridCellToVisibilityRecord) {
+				for (const cellKey in cellToStateRecord) {
+					const state = cellToStateRecord[cellKey]
 					const isVisible = visibleCellsThisFrame.has(cellKey)
-
-					if (gridCellToVisibilityRecord[cellKey] !== isVisible) {
-						gridCellToVisibilityRecord[cellKey] = isVisible
-						gridCellToSubscriptionsRecord[cellKey]?.forEach((subscription) => {
-							subscription(isVisible)
-						})
+					if (state.isVisible !== isVisible) {
+						state.isVisible = isVisible
+						state.subscriptions.forEach((sub) => sub(isVisible))
 					}
 				}
 			},
@@ -157,6 +157,7 @@ export const useSubscriptionToNode = (nodeId: string, subscriberCb: NodeSubscrib
 
 export const useSubscriptionToCellVisibility = (_node: Node) => {
 	const [isVisible, setVisible] = useState(false)
+	const instantNodeRef = useRef(_node)
 
 	const { getGridCellByCoordinates, subscribeToGridCell } = useMapContext()
 
@@ -166,6 +167,7 @@ export const useSubscriptionToCellVisibility = (_node: Node) => {
 	}, [_node, getGridCellByCoordinates])
 
 	useSubscriptionToNode(_node.id, (updatedNode) => {
+		instantNodeRef.current = updatedNode
 		setPatchableCell(getGridCellByCoordinates(updatedNode.x, updatedNode.y))
 	})
 
@@ -174,7 +176,7 @@ export const useSubscriptionToCellVisibility = (_node: Node) => {
 		return () => {
 			unsubscribe()
 		}
-	}, [patchableCell])
+	}, [patchableCell, subscribeToGridCell])
 
-	return isVisible
+	return {isVisible, instantNodeRef}
 }
