@@ -95,8 +95,12 @@ export const CanvasContextProvider: FC<CanvasContextProviderProps> = ({ children
 				}
 
 				return () => {
+					if (state.subscriptions.length === 1) {
+						delete cellToStateRecord[cellKey]
+						return
+					}
 					const index = state.subscriptions.indexOf(subscriberCb)
-					if (index > -1) {
+					if (index !== -1) {
 						state.subscriptions.splice(index, 1)
 					}
 				}
@@ -178,5 +182,5 @@ export const useSubscriptionToCellVisibility = (_node: Node) => {
 		}
 	}, [patchableCell, subscribeToGridCell])
 
-	return {isVisible, instantNodeRef}
+	return { isVisible, instantNodeRef }
 }
