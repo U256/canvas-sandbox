@@ -11,8 +11,27 @@ body {}
 }
 
 .canvas-wrapper {
-	width: calc(100% - 5px);
+	width: calc(100% - 10px);
 	height: calc(100% - 15px);
+	margin: 3px;
 	border: 1px solid blue;
 	flex: 1 0 auto;
+	position: relative;
+}
+
+.actions {
+	position: absolute;
+	top: 20px;
+	left: 50%;
+	transform: translateX(-50%);
+	display: flex;
+	gap: 4px;
+
+	button {
+		padding: 4px 8px;
+	}
+	p {
+		padding:0;
+		margin:  0 0 0 14px;
+	}
 }
